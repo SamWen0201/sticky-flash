@@ -19,4 +19,21 @@ export default {
   </main>
 </template>
 
-<style scoped></style>
+<style lang="scss">
+*,
+*::after,
+*::before {
+  margin: 0;
+  padding: 0;
+  box-sizing: inherit;
+}
+
+html {
+  font-family: "Courier New", Courier, monospace;
+  // 1rem = 16px
+}
+
+body {
+  box-sizing: border-box;
+}
+</style>

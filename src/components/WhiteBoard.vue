@@ -12,7 +12,7 @@ export default {
           id: crypto.randomUUID(),
           content: "First Note!",
           status: "alive",
-          position: { x: 0, y: 5 },
+          position: { x: 0, y: 100 },
         },
       ],
       contentEntering: "",
@@ -21,14 +21,15 @@ export default {
     };
   },
   methods: {
+    // add a Note on the whitebaord by the form
     addNote() {
-      console.log("addNote is triggered!");
-
+      // easy check: contentEntering should have value
       if (this.contentEntering === "" || this.contentEntering === null) {
         alert("Do let Note content empty");
         return;
       }
 
+      //  push new note in the notes[]
       this.notes.push({
         id: crypto.randomUUID(),
         content: this.contentEntering,
@@ -36,19 +37,34 @@ export default {
         position: { x: 0, y: 5 },
       });
 
+      // clear the content
       this.contentEntering = "";
-      this.formOpen = false;
     },
+
+    updateNote(id, editedContent) {
+      this.notes = this.notes.map((note) => {
+        if (note.id === id) {
+          return {
+            id: note.id,
+            content: editedContent,
+            status: note.status,
+            position: note.position,
+          };
+        }
+        return note;
+      });
+    },
+
+    // delete a Note
     deleteNote(id) {
-      // console.log("call deleteNote in WhiteBoard");
       this.notes = this.notes.filter((note) => note.id !== id);
     },
 
-    // delete animation happens before the deleteNote
-    deletingAnimation(id) {
+    // deleting animation happens before the deleteNote
+    deletingAnimationOccur(id) {
       this.notes = this.notes.map((note) => {
         if (note.id === id) {
-          // console.log("return deleting note: ", note.id);
+          // change the status value of note object, the status changed will trigger the animation
           return {
             id: note.id,
             content: note.content,
@@ -69,21 +85,27 @@ export default {
       */
       this.selectedNote = note;
       this.dragOffset = {
-        x: note.position.x - event.clientX,
-        y: note.position.y - event.clientY,
+        x: event.clientX - note.position.x,
+        y: event.clientY - note.position.y,
       };
     },
 
+    // drag note
     dragNote(event) {
       if (this.dragOffset === null || this.selectedNote === null) {
         return;
       }
 
+      // remove the relation value of x and y
+      const x = event.clientX - this.dragOffset.x;
+      const y = event.clientY - this.dragOffset.y;
+
       // bind the selected Note position with the offset between Note and pointer
       this.selectedNote.position = {
-        x: event.clientX + this.dragOffset.x,
-        y: event.clientY + this.dragOffset.y,
+        x,
+        y,
       };
+      // console.log("dragNote is triggered");
     },
 
     // remove the drag note
@@ -102,7 +124,7 @@ export default {
     class="white-board"
     @mousemove="dragNote"
     @mouseup="removeDrag"
-    ref="whiteboradRef"
+    ref="whiteBoardRef"
   >
     <h2>WhiteBoard</h2>
 
@@ -111,21 +133,21 @@ export default {
 
       <input id="content" maxlength="20" v-model="contentEntering" />
       <button type="submit">submit</button>
-      <span>input: {{ contentEntering }}</span>
     </form>
 
+    <!-- Note component -->
     <Note
       v-for="note in notes"
       :key="note.id"
       :note="note"
-      @delete-note="deletingAnimation"
       :class="{
-        deletingAnimation: note.status === 'deleting',
+        deletingAnimationOccur: note.status === 'deleting',
         movingNote: note === selectedNote,
       }"
       @animationend="deleteNote(note.id)"
       @mousedown="setDragOffset(note, $event)"
-      ref="noteRef"
+      @delete-note="deletingAnimationOccur"
+      @note-edited="updateNote"
     ></Note>
   </div>
 </template>
@@ -134,14 +156,14 @@ export default {
 /* DELETING ANIMATION */
 @keyframes deleting {
   0% {
-    background-color: yellow;
+    opacity: 1;
   }
   100% {
-    background-color: rgb(160, 180, 120);
+    opacity: 0;
   }
 }
 
-.deletingAnimation {
+.deletingAnimationOccur {
   animation: deleting 2s;
   animation-fill-mode: forwards;
 }
