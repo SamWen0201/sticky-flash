@@ -19,7 +19,6 @@ export default {
   data() {
     return {
       notes: [],
-      contentEntering: "",
       dragOffset: null, // 滑鼠點擊位置和便條紙位置的差值，保持這個差值去移動便條紙
       selectedNote: null, // 儲存 note.id 代表目前被拖曳的便條紙
     };
@@ -28,15 +27,11 @@ export default {
     // add a Note on the whitebaord by the form
     addNote() {
       // easy check: contentEntering should have value
-      if (this.contentEntering === "" || this.contentEntering === null) {
-        alert("Do let Note content empty");
-        return;
-      }
 
       const newNote = {
-        content: this.contentEntering,
+        content: "寫些什麼吧？",
         status: "alive",
-        position: { x: 0, y: 5 },
+        position: { x: 150, y: 150 },
       };
 
       // make post request
@@ -47,7 +42,6 @@ export default {
         .then((res) => {
           this.notes.push(res.data[0]);
           // clear the content
-          this.contentEntering = "";
         })
         .catch((err) => {
           console.log(err);
@@ -79,12 +73,12 @@ export default {
     },
 
     // delete a Note
-    deleteNote(id) {
+    deleteNote(deleteNote) {
       supabase
-        .delete(`/notes?id=eq.${id}`)
+        .delete(`/notes?id=eq.${deleteNote.id}`)
         .then((res) => {
           console.log(res);
-          this.notes = this.notes.filter((note) => note.id !== id);
+          this.notes = this.notes.filter((note) => note.id !== deleteNote.id);
         })
         .catch((err) => console.log(err))
         .finally(() => console.log("Finally block of deleteNote"));
@@ -156,12 +150,17 @@ export default {
     @mouseup="removeDrag"
     ref="whiteBoardRef"
   >
-    <form v-on:submit.prevent="addNote">
-      <label for="content">Note content (max 20 words): </label>
+    <div class="white-board__notes-number u-margin-top-md">
+      You Got <span>{{ notes.length }}</span> Notes
+    </div>
+    <div class="form-addNote">
+      <form v-on:submit.prevent="addNote">
+        <!-- <label for="content">Note content (max 20 words): </label> -->
 
-      <input id="content" maxlength="20" v-model="contentEntering" />
-      <button type="submit">submit</button>
-    </form>
+        <!-- <input id="content" maxlength="20" v-model="contentEntering" /> -->
+        <button type="submit" class="addNoteTrigger">Add a note</button>
+      </form>
+    </div>
 
     <!-- Note component -->
     <Note
@@ -169,40 +168,67 @@ export default {
       :key="note.id"
       :note="note"
       :class="{
-        deletingAnimationOccur: note.status === 'deleting',
         movingNote: note === selectedNote,
       }"
-      @animationend="deleteNote(note.id)"
+      @animationend="deleteNote(note)"
       @mousedown="setDragOffset(note, $event)"
-      @delete-note="deletingAnimationOccur"
+      @trigger-delete-note="deletingAnimationOccur"
       @note-edited="updateNote"
     ></Note>
   </div>
 </template>
 
-<style scoped>
-/* DELETING ANIMATION */
-@keyframes deleting {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.deletingAnimationOccur {
-  animation: deleting 2s;
-  animation-fill-mode: forwards;
-}
+<style scoped lang="scss">
+@use "../assets/main.scss";
 
 .white-board {
   position: relative;
+  height: 90vh;
 
-  /* background-color: #cd995f; */
-  height: 20rem;
+  &__notes-number {
+    font-size: 1.2rem;
+    font-weight: 300;
+    color: #eee;
+    letter-spacing: 0.1rem;
+
+    span {
+      font-weight: 500;
+      font-size: 1.2rem;
+      color: #fff;
+    }
+  }
 }
 .movingNote {
   transform: scale(1.3);
+}
+.form-addNote {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.addNoteTrigger {
+  background-color: burlywood;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 2px;
+  display: inline-block;
+  padding: 1rem;
+  box-shadow: 0 0.8rem 2.5rem rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 0.8rem 3rem rgba(0, 0, 0, 0.2);
+    transform: translateY(-0.2rem);
+  }
+
+  &:active {
+    transform: translateY(0.2rem);
+    box-shadow: 0 0.8rem 2.5rem rgba(0, 0, 0, 0.1);
+  }
 }
 </style>

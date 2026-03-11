@@ -13,7 +13,7 @@ export default {
 </script>
 
 <template>
-  <main>
+  <main class="container">
     <h1>Sticky Flash</h1>
     <WhiteBoard></WhiteBoard>
   </main>
@@ -29,11 +29,17 @@ export default {
 }
 
 html {
-  font-family: "Courier New", Courier, monospace;
+  font-family:
+    "Helvetica", "Arial", "LiHei Pro", "黑體-繁", "微軟正黑體", sans-serif;
   // 1rem = 16px
 }
 
 body {
   box-sizing: border-box;
+  background-color: #cd995f;
+  color: #eee;
+  padding: 2rem;
+}
+.container {
 }
 </style>

@@ -9,9 +9,9 @@ export default {
     };
   },
   methods: {
-    // emit delete-note event to WhiteBoard
-    deleteNote() {
-      this.$emit("delete-note", this.note.id);
+    // emit trigger-delete-note event to whiteboard which make deleting animation happen
+    triggerDeleteNote() {
+      this.$emit("trigger-delete-note", this.note.id);
     },
 
     // enter into editing mode, and make editing input focus
@@ -44,77 +44,178 @@ export default {
   <div
     class="note"
     :style="{ left: note.position.x + 'px', top: note.position.y + 'px' }"
+    :class="{ deleting: note.status === 'deleting' }"
   >
-    <!-- editing form input display editingContent-->
-    <form
-      class="note__editing-form"
-      v-if="isEditing"
-      @submit.prevent="submitEditing"
+    <div
+      class="note__main"
+      :class="{ deleting__main: note.status === 'deleting' }"
     >
-      <input
-        name="editedContent"
-        class="note__content-editing"
-        v-model="editingContent"
-        ref="inputRef"
-        @blur="submitEditing"
-        maxlength="10"
-      />
-    </form>
+      <!-- editing form input display editingContent-->
+      <form
+        class="note__editing-form"
+        v-if="isEditing"
+        @submit.prevent="submitEditing"
+      >
+        <input
+          name="editedContent"
+          class="note__content-editing"
+          v-model="editingContent"
+          ref="inputRef"
+          @blur="submitEditing"
+          maxlength="10"
+        />
+      </form>
 
-    <!--p element display original note.content  -->
-    <p class="note__content" v-else @click="editNote" ref="noteContentRef">
-      {{ note.content }}
-    </p>
+      <!--p element display original note.content  -->
+      <p
+        class="note__content"
+        v-else="isEditing"
+        @click="editNote"
+        ref="noteContentRef"
+      >
+        {{ note.content }}
+      </p>
+    </div>
 
-    <button class="note__delete-btn" type="button" @click="deleteNote">
-      cut
+    <button
+      class="note__delete-btn note__left-corner"
+      :class="{ 'deleting__left-corner': note.status === 'deleting' }"
+      type="button"
+      @click="triggerDeleteNote"
+    >
+      &nbsp;
     </button>
     <!-- <span v-if="note.status === 'deleting'">deleting...</span> -->
   </div>
 </template>
 <style scoped lang="scss">
+/* DELETING ANIMATION */
+@keyframes deleting {
+  0% {
+    box-shadow: none;
+    opacity: 1;
+  }
+  100% {
+    box-shadow: none;
+    opacity: 0;
+  }
+}
+@keyframes deleting-main {
+  0% {
+    transform: rotateX(0) rotateY(0) rotateZ(0);
+  }
+  100% {
+    transform: rotateX(40deg) rotateY(20deg) rotateZ(20deg);
+  }
+}
+@keyframes deleting-left-corner {
+  0% {
+    transform: rotateX(0) rotateY(0) rotateZ(0);
+  }
+  100% {
+    transform: rotateX(-40deg) rotateY(20deg) rotateZ(-20deg);
+  }
+}
+@keyframes deleting-cut-line {
+  0% {
+    opacity: 1;
+    width: 0;
+  }
+  100% {
+    opacity: 0;
+    width: 140%;
+  }
+}
+
+.deleting {
+  pointer-events: none;
+  & {
+    animation: deleting 1.2s;
+    animation-fill-mode: forwards;
+  }
+  &__main {
+    animation: deleting-main 1.2s;
+    animation-fill-mode: forwards;
+  }
+  &__left-corner {
+    animation: deleting-left-corner 1.2s;
+    animation-fill-mode: forwards;
+  }
+}
 // 1rem = 16px
 
 .note {
-  background-color: rgba(224, 224, 28);
-  color: black;
-  font-weight: 300;
-  font-style: italic;
-  padding: 2rem;
-  width: 10rem;
-  height: 10rem;
-  box-shadow: 0 2rem 3rem rgba(0, 0, 0, 0.4);
+  width: 11rem;
+  height: 11rem;
   transition:
     opacity 0.4s,
     transform 0.3s;
   position: absolute;
-  display: grid;
-  align-items: center;
-  justify-content: center;
+  filter: drop-shadow(1rem 2rem 3rem rgba(0, 0, 0, 0.15));
 
+  &:hover {
+    cursor: grab;
+  }
+  &:active {
+    cursor: grabbing;
+  }
+
+  &__main {
+    padding: 1rem;
+    clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%, 0 30%);
+
+    background-color: rgb(215, 215, 70);
+
+    height: 100%;
+    display: grid;
+    align-items: center;
+    align-content: stretch;
+    justify-content: stretch;
+  }
+
+  // conteint-editing is input element
+  &__content-editing,
+  &__content {
+    color: #4b4b4b;
+
+    font-weight: 400;
+    font-size: 1.2rem;
+    padding: 1rem;
+    transition: all 0.3s;
+    text-align: center;
+  }
   &__content-editing {
     width: 100%;
     border: none;
     outline: none;
-    padding: 0.2rem;
   }
   &__content {
+    display: block;
+    width: 100%;
+  }
+
+  &__content {
     &:hover {
-      background-color: rgb(206, 182, 24);
+      background-color: rgb(208, 187, 27);
       cursor: pointer;
     }
   }
 
   &__delete-btn {
     position: absolute;
-    top: 0.1rem;
-    left: 0.1rem;
+    top: 0;
+    left: 0;
     border: none;
+    width: 30%;
+    height: 30%;
     padding: 0.5rem;
-    border-radius: 50%;
-    background-color: #fff;
+    background-color: rgb(180, 180, 50);
     color: #4b4b4b;
     cursor: pointer;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    // opacity: 0;
   }
+
+  // Implementing
 }
 </style>
