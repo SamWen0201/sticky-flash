@@ -1,20 +1,24 @@
 <script>
 import Note from "./Note.vue";
+import supabase from "@/api/supabase";
+
 export default {
+  mounted() {
+    // axios get /notes
+    const data = supabase.get("/notes");
+    data
+      .then((response) => {
+        this.notes = response.data;
+      })
+      .catch((error) => console.log(error));
+  },
   components: {
     Note,
   },
 
   data() {
     return {
-      notes: [
-        {
-          id: crypto.randomUUID(),
-          content: "First Note!",
-          status: "alive",
-          position: { x: 0, y: 100 },
-        },
-      ],
+      notes: [],
       contentEntering: "",
       dragOffset: null, // 滑鼠點擊位置和便條紙位置的差值，保持這個差值去移動便條紙
       selectedNote: null, // 儲存 note.id 代表目前被拖曳的便條紙
@@ -29,35 +33,61 @@ export default {
         return;
       }
 
-      //  push new note in the notes[]
-      this.notes.push({
-        id: crypto.randomUUID(),
+      const newNote = {
         content: this.contentEntering,
         status: "alive",
         position: { x: 0, y: 5 },
-      });
+      };
 
-      // clear the content
-      this.contentEntering = "";
+      // make post request
+      supabase
+        .post("/notes", newNote, {
+          headers: { Prefer: "return=representation" },
+        })
+        .then((res) => {
+          this.notes.push(res.data[0]);
+          // clear the content
+          this.contentEntering = "";
+        })
+        .catch((err) => {
+          console.log(err);
+          // render Add note failed
+        })
+        .finally(() => console.log("finally block"));
     },
 
-    updateNote(id, editedContent) {
-      this.notes = this.notes.map((note) => {
-        if (note.id === id) {
-          return {
-            id: note.id,
-            content: editedContent,
-            status: note.status,
-            position: note.position,
-          };
-        }
-        return note;
-      });
+    updateNote(editedNote, editedContent) {
+      if (editedNote.content === editedContent) return;
+      supabase
+        .patch(`/notes?id=eq.${editedNote.id}`, { content: editedContent })
+        .then((res) => {
+          console.log(res);
+          this.notes = this.notes.map((note) => {
+            if (note.id === editedNote.id) {
+              return {
+                id: note.id,
+                content: editedContent,
+                status: note.status,
+                position: note.position,
+              };
+            }
+            return note;
+          });
+        })
+        .catch((err) => console.log(err))
+        .finally(() => console.log("Finally block of updateNote"));
     },
 
     // delete a Note
     deleteNote(id) {
-      this.notes = this.notes.filter((note) => note.id !== id);
+      supabase
+        .delete(`/notes?id=eq.${id}`)
+        .then((res) => {
+          console.log(res);
+          this.notes = this.notes.filter((note) => note.id !== id);
+        })
+        .catch((err) => console.log(err))
+        .finally(() => console.log("Finally block of deleteNote"));
     },
 
     // deleting animation happens before the deleteNote
@@ -126,8 +156,6 @@ export default {
     @mouseup="removeDrag"
     ref="whiteBoardRef"
   >
-    <h2>WhiteBoard</h2>
-
     <form v-on:submit.prevent="addNote">
       <label for="content">Note content (max 20 words): </label>
 
@@ -171,7 +199,7 @@ export default {
 .white-board {
   position: relative;
 
-  background-color: #cd995f;
+  /* background-color: #cd995f; */
   height: 20rem;
 }
 .movingNote {

@@ -9,10 +9,12 @@ export default {
     };
   },
   methods: {
+    // emit delete-note event to WhiteBoard
     deleteNote() {
-      console.log("call deleteNote in Note");
       this.$emit("delete-note", this.note.id);
     },
+
+    // enter into editing mode, and make editing input focus
     async editNote() {
       // isEditing must be true when editNote
       this.isEditing = true;
@@ -22,10 +24,17 @@ export default {
       console.log(this.$refs.inputRef);
       this.$refs.inputRef.focus();
     },
+    // emit note-edited event and its args editingContent
     submitEditing() {
       if (this.isEditing === false) return;
+      // if editedContent is empty
+      if (this.editingContent === "") {
+        this.editingContent = this.note.content;
+        this.isEditing = false;
+        return;
+      }
       console.log("submitEditing is triggered!");
-      this.$emit("note-edited", this.note.id, this.editingContent);
+      this.$emit("note-edited", this.note, this.editingContent);
       this.isEditing = false;
     },
   },
@@ -48,6 +57,7 @@ export default {
         v-model="editingContent"
         ref="inputRef"
         @blur="submitEditing"
+        maxlength="10"
       />
     </form>
 
@@ -71,7 +81,6 @@ export default {
   font-weight: 300;
   font-style: italic;
   padding: 2rem;
-  display: block;
   width: 10rem;
   height: 10rem;
   box-shadow: 0 2rem 3rem rgba(0, 0, 0, 0.4);
@@ -79,6 +88,9 @@ export default {
     opacity 0.4s,
     transform 0.3s;
   position: absolute;
+  display: grid;
+  align-items: center;
+  justify-content: center;
 
   &__content-editing {
     width: 100%;
