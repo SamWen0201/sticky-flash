@@ -10,8 +10,26 @@ export default {
       .then((response) => {
         this.notes = response.data;
       })
-      .catch((error) => console.log(error));
+      .catch((error) => {
+        // if warnMessage has value, prevent repetitive function occur.
+        if (this.warnMessage) {
+          return;
+        }
+
+        // error handling
+        if (error.response === undefined) {
+          this.warnMessage = "Get Notes failed. Check out your Network";
+        } else if (error.response.status) {
+          this.warnMessage = "Get Notes failed. System fault!";
+        }
+
+        setTimeout(() => {
+          this.warnMessage = "";
+        }, 2000);
+      })
+      .finally(() => this.$emit("loading-finished"));
   },
+  props: ["loading"],
   components: {
     Note,
   },
@@ -21,6 +39,7 @@ export default {
       notes: [],
       dragOffset: null, // 滑鼠點擊位置和便條紙位置的差值，保持這個差值去移動便條紙
       selectedNote: null, // 儲存 note.id 代表目前被拖曳的便條紙
+      warnMessage: "",
     };
   },
   methods: {
@@ -44,18 +63,29 @@ export default {
           // clear the content
         })
         .catch((err) => {
-          console.log(err);
-          // render Add note failed
-        })
-        .finally(() => console.log("finally block"));
+          // if warnMessage has value, prevent repetitive function occur.
+          if (this.warnMessage) {
+            return;
+          }
+
+          // error handling
+          if (err.response === undefined) {
+            this.warnMessage = "Failed Adding a Note! Check out your Network";
+          } else if (err.response.status) {
+            this.warnMessage = "Failed Adding a Note! System fault!";
+          }
+
+          setTimeout(() => {
+            this.warnMessage = "";
+          }, 2000);
+        });
     },
 
-    updateNote(editedNote, editedContent) {
+    updateNoteContent(editedNote, editedContent) {
       if (editedNote.content === editedContent) return;
       supabase
         .patch(`/notes?id=eq.${editedNote.id}`, { content: editedContent })
-        .then((res) => {
-          console.log(res);
+        .then(() => {
           this.notes = this.notes.map((note) => {
             if (note.id === editedNote.id) {
               return {
@@ -68,20 +98,56 @@ export default {
             return note;
           });
         })
-        .catch((err) => console.log(err))
-        .finally(() => console.log("Finally block of updateNote"));
+        .catch((err) => {
+          // if warnMessage has value, prevent repetitive function occur.
+          if (this.warnMessage) {
+            return;
+          }
+
+          // error handling
+          if (err.response === undefined) {
+            this.warnMessage = "Failed Updating a Note! Check out your Network";
+          } else if (err.response.status) {
+            this.warnMessage = "Failed Updating a Note! System fault!";
+          }
+
+          setTimeout(() => {
+            this.warnMessage = "";
+          }, 2000);
+        });
+    },
+
+    // when move is stopped, the note position will be patched to backend
+    updateNotePosition(updatedNote) {
+      supabase.patch(`/notes?id=eq.${updatedNote.id}`, {
+        position: updatedNote.position,
+      });
     },
 
     // delete a Note
     deleteNote(deleteNote) {
       supabase
         .delete(`/notes?id=eq.${deleteNote.id}`)
-        .then((res) => {
-          console.log(res);
+        .then(() => {
           this.notes = this.notes.filter((note) => note.id !== deleteNote.id);
         })
-        .catch((err) => console.log(err))
-        .finally(() => console.log("Finally block of deleteNote"));
+        .catch((err) => {
+          // if warnMessage has value, prevent repetitive function occur.
+          if (this.warnMessage) {
+            return;
+          }
+
+          // error handling
+          if (err.response === undefined) {
+            this.warnMessage = "Failed Deleting a Note! Check out your Network";
+          } else if (err.response.status) {
+            this.warnMessage = "Failed Deleting a Note! System fault!";
+          }
+
+          setTimeout(() => {
+            this.warnMessage = "";
+          }, 2000);
+        });
     },
 
     // deleting animation happens before the deleteNote
@@ -129,11 +195,15 @@ export default {
         x,
         y,
       };
-      // console.log("dragNote is triggered");
     },
 
     // remove the drag note
     removeDrag() {
+      if (this.selectedNote === null && this.dragOffset === null) return;
+      // update the note position
+      this.updateNotePosition(this.selectedNote);
+
+      // remove the selectedNote and dragoffset
       this.selectedNote = null;
       this.dragOffset = null;
     },
@@ -150,15 +220,18 @@ export default {
     @mouseup="removeDrag"
     ref="whiteBoardRef"
   >
+    <span v-if="warnMessage" class="warn-message">{{ warnMessage }}</span>
+
     <div class="white-board__notes-number u-margin-top-md">
       You Got <span>{{ notes.length }}</span> Notes
     </div>
+
     <div class="form-addNote">
       <form v-on:submit.prevent="addNote">
         <!-- <label for="content">Note content (max 20 words): </label> -->
 
         <!-- <input id="content" maxlength="20" v-model="contentEntering" /> -->
-        <button type="submit" class="addNoteTrigger">Add a note</button>
+        <button type="submit" class="btn-addNote">Add a note</button>
       </form>
     </div>
 
@@ -173,14 +246,16 @@ export default {
       @animationend="deleteNote(note)"
       @mousedown="setDragOffset(note, $event)"
       @trigger-delete-note="deletingAnimationOccur"
-      @note-edited="updateNote"
+      @note-edited="updateNoteContent"
     ></Note>
   </div>
 </template>
 
 <style scoped lang="scss">
 @use "../assets/main.scss";
+// LOADING
 
+// WHITEBOARD STYLE
 .white-board {
   position: relative;
   height: 90vh;
@@ -207,9 +282,10 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
 }
-.addNoteTrigger {
+.btn-addNote {
   background-color: burlywood;
   color: #ffffff;
+  text-transform: uppercase;
   font-weight: 600;
   font-size: 1.1rem;
   border: none;
@@ -230,5 +306,17 @@ export default {
     transform: translateY(0.2rem);
     box-shadow: 0 0.8rem 2.5rem rgba(0, 0, 0, 0.1);
   }
+}
+.warn-message {
+  background-color: #eee;
+  color: #cd5959;
+  text-transform: uppercase;
+  padding: 1rem;
+  border-radius: 3px;
+  display: inline-block;
+  position: absolute;
+  bottom: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 </style>

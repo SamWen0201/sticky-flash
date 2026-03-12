@@ -21,7 +21,7 @@ export default {
       // catch the input ref value
       await nextTick();
       // after dom re-render (state has changed)
-      console.log(this.$refs.inputRef);
+
       this.$refs.inputRef.focus();
     },
     // emit note-edited event and its args editingContent
@@ -33,7 +33,7 @@ export default {
         this.isEditing = false;
         return;
       }
-      console.log("submitEditing is triggered!");
+
       this.$emit("note-edited", this.note, this.editingContent);
       this.isEditing = false;
     },
@@ -62,17 +62,12 @@ export default {
           v-model="editingContent"
           ref="inputRef"
           @blur="submitEditing"
-          maxlength="10"
+          maxlength="15"
         />
       </form>
 
       <!--p element display original note.content  -->
-      <p
-        class="note__content"
-        v-else="isEditing"
-        @click="editNote"
-        ref="noteContentRef"
-      >
+      <p class="note__content" v-else @click="editNote" ref="noteContentRef">
         {{ note.content }}
       </p>
     </div>
